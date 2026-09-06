@@ -56,9 +56,61 @@ The chatbot is instructed via its system prompt to classify incoming user intent
 
 ## 2. Core System Architecture & Mermaid Diagrams
 
-### 2.1 Runtime Message Flow (Sequence Diagram)
+### 2.1 Runtime Message Flow 
 
 The following sequence diagram illustrates the lifecycle of customer interactions, contrasting standard FAQ/fallback responses with multi-turn tool invocation:
+
+```mermaid
+flowchart LR
+    Start([Customer Message]) --> Classify{Category?}
+
+    %% Branch 1: Bug Report
+    Classify -->|Technical Glitch / Crash| Bug[1. Bug Report]
+    Bug --> CheckFields{Has Description,<br/>Steps & Environment?}
+    CheckFields -->|No| AskField[Ask for ONE missing field]
+    CheckFields -->|Yes| FileBug[Execute create_bug_report tool]
+    FileBug --> ReturnTicket([Respond with Ticket ID])
+    AskField --> EndTurn1([Wait for Customer])
+
+    %% Branch 2: Platform Question
+    Classify -->|Order, Shipping, Return, Payment| FAQ[2. Platform Question]
+    FAQ --> InFAQ{In Embedded FAQ?}
+    InFAQ -->|Yes| QuoteFAQ([Respond with FAQ Figures])
+    InFAQ -->|No| Handoff1
+
+    %% Branch 3: Other / Out of Scope
+    Classify -->|Product Advice, Human Request| Other[3. Other Request]
+    Other --> Handoff2[Redirect to Support Line]
+    Handoff1[Redirect to Support Line] --> EndHandoff([1-800-555-0199 Call Message])
+    Handoff2 --> EndHandoff
+
+    %% Formatting
+    style Classify fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+    style CheckFields fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+    style InFAQ fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+```
+
+#### Diagram 1: FAQ Retrieval Flow
+This flow handles standard platform questions grounded in the embedded FAQ.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant AgentCore as Bedrock AgentCore
+    participant NovaPro as Amazon Nova Pro
+
+    Customer->>AgentCore: Platform inquiry (e.g. shipping or return policy)
+    AgentCore->>NovaPro: Evaluate prompt with embedded FAQ
+    NovaPro-->>AgentCore: Return grounded FAQ response
+    AgentCore-->>Customer: Stream response to user
+```
+
+
+#### Diagram 2: Multi-turn Bug Ticket Intake Flow
+
+This flow handles technical bug reporting, parameter gathering across turns, and filing a ticket via tool invocation.
+
 
 ```mermaid
 sequenceDiagram
@@ -69,13 +121,6 @@ sequenceDiagram
     participant Tool as AgentCore Gateway
     participant DB as DynamoDB
 
-    %% 1. FAQ Retrieval Flow
-    Customer->>AgentCore: Platform inquiry (e.g. shipping or return policy)
-    AgentCore->>NovaPro: Evaluate prompt with embedded FAQ
-    NovaPro-->>AgentCore: Return grounded FAQ response
-    AgentCore-->>Customer: Stream response to user
-
-    %% 2. Multi-turn Bug Ticket Intake Flow
     Customer->>AgentCore: Report website bug or glitch
     AgentCore->>NovaPro: Detect bug report and check parameters
     NovaPro-->>AgentCore: Request missing reproduction details
@@ -90,6 +135,24 @@ sequenceDiagram
     AgentCore->>NovaPro: Generate confirmation message
     NovaPro-->>AgentCore: Return final response
     AgentCore-->>Customer: Confirm ticket ID to user
+```
+
+
+#### Diagram 3: Other Requests / Human Support Fallback Flow
+
+This flow handles queries outside FAQ/bugs or requests not present in the FAQ by politely redirecting to human support.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant AgentCore as Bedrock AgentCore
+    participant NovaPro as Amazon Nova Pro
+
+    Customer->>AgentCore: Unrecognized request / Ask for human agent / Out-of-FAQ topic
+    AgentCore->>NovaPro: Evaluate request against FAQ and Bug categories
+    NovaPro-->>AgentCore: Determine request is unhandled / requires human handoff
+    AgentCore-->>Customer: Provide human support hotline (1-800-555-0199) redirect
 ```
 
 ### 2.2 File and Module Relationship (Flowchart)
