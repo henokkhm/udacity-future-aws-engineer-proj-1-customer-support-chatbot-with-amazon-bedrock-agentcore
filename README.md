@@ -12,7 +12,6 @@ An agentic customer support chatbot built with the **Amazon Bedrock AgentCore** 
   - [Chatbot Behavior \& Routing](#chatbot-behavior--routing)
   - [Technology Stack](#technology-stack)
   - [Deployment](#deployment)
-  - [Once the status of your latest evaluation is "Completed", you can see the results in the AWS Console -\> Bedrock -\> Evaluations -\> ](#once-the-status-of-your-latest-evaluation-is-completed-you-can-see-the-results-in-the-aws-console---bedrock---evaluations---)
   - [License and Copyright](#license-and-copyright)
     - [Usage Restrictions](#usage-restrictions)
 
@@ -172,6 +171,32 @@ aws bedrock list-evaluation-jobs --region us-east-1 \
 ```
 
 Once the status of your latest evaluation is "Completed", you can see the results in the AWS Console -> Bedrock -> Evaluations -> <Your Evaluation>
+
+**6. Clean up**
+
+After completing the project, delete all resources not to incur additional costs. Run each command one by one:
+
+```bash
+python cleanup_agentcore.py
+```
+
+```bash
+aws s3 rm s3://<BUCKET> --recursive --region us-east-1
+```
+
+```bash
+aws cloudformation delete-stack --stack-name bug-report-testing-stack --region us-east-1
+```
+
+```bash
+aws cloudformation delete-stack --stack-name bug-report-tool-stack --region us-east-1
+```
+
+```bash
+rm -rf venv
+```
+
+
 ---
 
 ## License and Copyright
