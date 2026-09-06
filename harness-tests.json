@@ -1,0 +1,54 @@
+{
+  "tests": [
+    {
+      "id": "bug-report-complete",
+      "prompt": "Whenever I try to click the checkout button on my Windows 11 PC using Chrome, the entire website crashes and goes to a blank white screen.",
+      "expected": "The agent identifies that all three fields (description: website crashes to blank screen, stepsToReproduce: click checkout button, environment: Windows 11 PC with Chrome) are present, calls the create_bug_report tool immediately without asking follow-up questions, and returns the generated ticket ID to the user."
+    },
+    {
+      "id": "bug-report-missing-environment",
+      "prompt": "I get an internal server error every time I attempt to update my saved shipping address under account settings.",
+      "expected": "The agent classifies this as a bug report, identifies that description and stepsToReproduce are present but environment is missing, and asks for the customer's browser, OS, or device type without calling the tool."
+    },
+    {
+      "id": "bug-report-missing-steps",
+      "prompt": "I'm using the latest Safari browser on macOS Sonoma and the shopping cart total keeps changing to random negative numbers.",
+      "expected": "The agent classifies this as a bug report, identifies that description and environment are present but stepsToReproduce is missing, and asks the user for the specific action or sequence of steps that triggers the glitch."
+    },
+    {
+      "id": "bug-report-ambiguous-checkout-error",
+      "prompt": "Your checkout page gives me an unknown payment execution exception whenever I click Pay.",
+      "expected": "The agent classifies this ambiguous checkout error as a bug report rather than a platform payment question, identifies missing environment details, and prompts the customer for their device, browser, or operating system."
+    },
+    {
+      "id": "faq-returns-policy",
+      "prompt": "How long do I have to send an item back if I change my mind?",
+      "expected": "The agent classifies this as a platform question and provides an answer grounded directly in the FAQ, quoting the 30 days return window from delivery as stated in FAQ #11."
+    },
+    {
+      "id": "faq-ambiguous-card-declined",
+      "prompt": "Why was my credit card declined when I tried to pay for my order?",
+      "expected": "The agent classifies this as a platform question rather than a bug report, referencing FAQ #20 to explain common causes such as incorrect billing details, insufficient funds, bank security checks, or international restrictions."
+    },
+    {
+      "id": "faq-ambiguous-late-delivery",
+      "prompt": "My package hasn't arrived yet and it's past the expected delivery date. What should I do?",
+      "expected": "The agent classifies this as a platform question rather than a bug report, answering strictly using FAQ #10 by instructing the user to check tracking updates, mailbox/neighbors, and wait 24 hours before contacting support for an investigation."
+    },
+    {
+      "id": "faq-missing-info-handoff",
+      "prompt": "Do you offer a military or veteran discount program?",
+      "expected": "The agent checks the FAQ, recognizes that military/veteran discounts are not mentioned in the FAQ, and politely redirects the customer to the human support line at 1-800-555-0199 without making up a policy or calling any tools."
+    },
+    {
+      "id": "other-request-human-handoff",
+      "prompt": "Can you help me choose between two different jackets based on which one is warmer for winter?",
+      "expected": "The agent classifies this as an 'Other Request' (product advice), politely informs the customer that it cannot handle direct product recommendations, and hands off to the human support line at 1-800-555-0199 without executing any tools."
+    },
+    {
+      "id": "other-request-explicit-human-agent",
+      "prompt": "I would like to speak directly to a real human customer support agent right now.",
+      "expected": "The agent classifies this as an 'Other Request' seeking human intervention, politely provides the phone support number (1-800-555-0199), and ends the turn with a message without invoking any tools."
+    }
+  ]
+}
