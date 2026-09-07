@@ -1,0 +1,15 @@
+(venv) henokkh@pop-os:~/Desktop/Udacity Future AWS Agent Engineer/project_1$ python chat.py 
+Connected to harness support_chatbot (session 97b34f6f-99d7-4c20-8bb6-6e074eae6c26-support-chat).
+Type a message, or 'quit' to exit.
+
+you> How long does processing typically take before my order is dispatched?
+bot> <thinking> The user's question pertains to the processing time for an order before it is dispatched, which falls under the "Shipping & Delivery" section of the FAQ. I should provide the relevant information directly from the FAQ. </thinking>
+
+Typically, processing takes 1–2 business days before dispatch. For more detailed information, please refer to the FAQ: "Estimated delivery times are shown at checkout and in your shipping confirmation email. Processing typically takes 1–2 business days before dispatch."
+
+you> 
+
+
+
+
+

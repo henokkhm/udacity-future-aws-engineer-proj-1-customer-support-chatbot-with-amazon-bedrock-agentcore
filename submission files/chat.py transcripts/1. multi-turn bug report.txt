@@ -1,0 +1,180 @@
+(venv) henokkh@pop-os:~/Desktop/Udacity Future AWS Agent Engineer/project_1$ python chat.py 
+Connected to harness support_chatbot (session 0ee5020c-85c3-4931-8093-dbc7ca5d8c3f-support-chat).
+Type a message, or 'quit' to exit.
+
+you> The product images do not load correctly. I see only text on the website.
+bot> <thinking> The customer is reporting an issue with product images not loading correctly, which falls under the category of Bug Reports. I need to gather the required fields: `description`, `stepsToReproduce`, and `environment`. First, I will confirm the issue and ask for the `environment`. </thinking>
+
+[tool call] bugreports___create_bug_report
+<thinking> The customer has provided the `description`, but I need to ask for the `environment` and `stepsToReproduce` to file the bug report. I will ask for the `environment` first. </thinking>
+
+Could you please let me know the browser, operating system, and device you are using? For example, are you on Chrome, Windows 10, and an iPhone?
+
+you> Chrome 150, Android 15
+bot> <thinking> The customer has provided the `environment`. Next, I need to ask for the `stepsToReproduce` to file the bug report. </thinking>
+
+Thank you for providing that information. Could you please describe the steps you take to encounter this issue? For example, "I open the website, navigate to the product page, and the images do not load."
+
+you> I open the website, tap any product, and every image is a grey box.
+bot> <thinking> The customer has provided the `stepsToReproduce`. I now have all the required fields to file the bug report. I will call the `create_bug_report` tool with the provided information. </thinking> 
+[tool call] bugreports___create_bug_report
+<thinking> The bug report has been successfully filed. I will inform the customer of the ticket ID and that their issue is being looked into. </thinking>
+
+Thank you for providing the details. Your bug report has been filed, and our team is looking into it. Your ticket ID is 808fdd98-6f87-44cd-a76f-e80ded562bf8. We appreciate your patience and will keep you updated on the progress.
+
+you> 
+
+
+
+DynamoDB Table Output:
+Note: The above bug report is the first item below. 
+
+(venv) henokkh@pop-os:~/Desktop/Udacity Future AWS Agent Engineer/project_1$ aws dynamodb scan --table-name bug-report-tool-stack-bug-reports --region us-east-1 | xclip -selection clipboard
+
+{
+    "Items": [
+        {
+            "environment": {
+                "S": "Safari 17 on iPhone"
+            },
+            "createdAt": {
+                "S": "2026-09-07T12:39:26.115694+00:00"
+            },
+            "description": {
+                "S": "Product images not loading"
+            },
+            "stepsToReproduce": {
+                "S": "Open the shop, tap any category page, and every image is a grey box."
+            },
+            "ticketId": {
+                "S": "daec13b9-f076-472a-89aa-9fa3b3d6e73b"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Safari 17 on iPhone"
+            },
+            "createdAt": {
+                "S": "2026-09-07T12:39:22.157457+00:00"
+            },
+            "description": {
+                "S": "Product images not loading"
+            },
+            "stepsToReproduce": {
+                "S": "Open the shop, tap any category page."
+            },
+            "ticketId": {
+                "S": "833c7ad4-2497-4e0e-8d17-aed12649f879"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Not provided"
+            },
+            "createdAt": {
+                "S": "2026-09-07T14:15:42.940140+00:00"
+            },
+            "description": {
+                "S": "The product images fail to load"
+            },
+            "stepsToReproduce": {
+                "S": "Not provided"
+            },
+            "ticketId": {
+                "S": "27f3d72e-5e85-4a8b-b564-bb98036204d7"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Chrome 150, Android 15"
+            },
+            "createdAt": {
+                "S": "2026-09-07T14:17:13.282880+00:00"
+            },
+            "description": {
+                "S": "Product images do not load correctly. Only text is visible on the website."
+            },
+            "stepsToReproduce": {
+                "S": "I open the website, tap any product, and every image is a grey box."
+            },
+            "ticketId": {
+                "S": "808fdd98-6f87-44cd-a76f-e80ded562bf8"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Safari 17 on iPhone"
+            },
+            "createdAt": {
+                "S": "2026-09-07T13:09:06.205181+00:00"
+            },
+            "description": {
+                "S": "Product images do not load on category pages."
+            },
+            "stepsToReproduce": {
+                "S": "Open the shop, tap any category, and observe that every image is a grey box."
+            },
+            "ticketId": {
+                "S": "727c228e-ae7b-4f21-9ce9-058316cdcf65"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Chrome 120 on macOS Sonoma"
+            },
+            "createdAt": {
+                "S": "2026-09-07T12:28:46.954813+00:00"
+            },
+            "description": {
+                "S": "The checkout page crashes when I click the Pay button"
+            },
+            "stepsToReproduce": {
+                "S": "1. Add an item to the cart. 2. Go to checkout. 3. Click Pay."
+            },
+            "ticketId": {
+                "S": "57e6abc0-d7a2-450a-9811-70fea59dfb0a"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        },
+        {
+            "environment": {
+                "S": "Safari 17 on iPhone"
+            },
+            "createdAt": {
+                "S": "2026-09-07T12:35:20.537043+00:00"
+            },
+            "stepsToReproduce": {
+                "S": "Open the shop and tap any category page"
+            },
+            "description": {
+                "S": "Product images never load"
+            },
+            "ticketId": {
+                "S": "46a27d47-3372-4c74-8fdb-5255b9fee09b"
+            },
+            "status": {
+                "S": "OPEN"
+            }
+        }
+    ],
+    "Count": 7,
+    "ScannedCount": 7,
+    "ConsumedCapacity": null
+}
