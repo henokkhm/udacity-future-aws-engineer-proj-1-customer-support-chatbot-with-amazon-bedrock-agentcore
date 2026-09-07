@@ -1,0 +1,54 @@
+{
+  "tests": [
+    {
+      "id": "bug-report-complete",
+      "prompt": "On Safari 17 on my iPhone, the product images never load on category pages. I open the shop, tap any category, and every image is a grey box.",
+      "expected": "The agent identifies that all three fields are clearly provided (description: product images never load / grey box; stepsToReproduce: open shop, tap any category; environment: Safari 17 on iPhone). It calls the create_bug_report tool immediately without asking follow-up questions and provides the returned ticket ID to the customer."
+    },
+    {
+      "id": "bug-report-missing-environment",
+      "prompt": "Your checkout page crashes every time I click the Pay button. It gives me a blank screen.",
+      "expected": "The agent classifies this checkout error as a bug report. It recognizes that description ('crashes / blank screen') and stepsToReproduce ('click the Pay button') are provided, but environment is missing. It asks for the customer's browser, OS, or device without calling the create_bug_report tool."
+    },
+    {
+      "id": "bug-report-missing-steps",
+      "prompt": "I am using Google Chrome on Windows 11 and I noticed a broken link on your website.",
+      "expected": "The agent classifies this as a bug report. It recognizes that description ('broken link') and environment ('Google Chrome on Windows 11') are provided, but stepsToReproduce is missing (no specific action or page location described). It asks the customer for the specific steps or location where they encountered the broken link without calling the tool."
+    },
+    {
+      "id": "bug-report-missing-steps-and-env",
+      "prompt": "The website shows an error page whenever I try to access my saved items.",
+      "expected": "The agent classifies this as a bug report. It identifies the description ('shows an error page'), but notes that stepsToReproduce and environment are both missing. Following the rule to ask for one missing field at a time, it asks the customer either for their browser/device OR the specific steps taken."
+    },
+    {
+      "id": "faq-returns-policy",
+      "prompt": "How long do I have to send an item back?",
+      "expected": "The agent classifies this as a platform question. It answers using FAQ #11, explicitly quoting the exact figure that items can be returned within 30 days of delivery."
+    },
+    {
+      "id": "faq-ambiguous-card-declined",
+      "prompt": "Why was my payment declined at checkout?",
+      "expected": "The agent classifies this ambiguous case as a platform question rather than a bug report. It answers strictly using FAQ #20, listing potential reasons such as incorrect billing details, insufficient funds, bank security checks, or international purchase limits."
+    },
+    {
+      "id": "faq-ambiguous-late-delivery",
+      "prompt": "My package is late and hasn't arrived yet. What should I do?",
+      "expected": "The agent classifies this ambiguous case as a platform question rather than a bug report. It answers strictly using FAQ #10, advising the customer to check tracking, check with neighbors/mailbox, and wait 24 hours before contacting support."
+    },
+    {
+      "id": "faq-missing-info-handoff",
+      "prompt": "Do you offer a student discount?",
+      "expected": "The agent checks the FAQ, recognizes that student discounts are not covered in the FAQ, explicitly states that it cannot answer from the FAQ, and politely redirects the customer to the human support line at 1-800-555-0199."
+    },
+    {
+      "id": "other-request-human-explicit",
+      "prompt": "I'd like to speak to a real person.",
+      "expected": "The agent classifies this as an 'Other Request' because the user is directly requesting a human representative rather than reporting a bug or asking a platform FAQ question. It politely redirects the customer to the human support line at 1-800-555-0199 without executing any tools."
+    },
+    {
+      "id": "other-request-product-recommendation",
+      "prompt": "Can you recommend which laptop case in your store is best for traveling on airplanes?",
+      "expected": "The agent classifies this as an 'Other Request' (product recommendation/advice) since it falls outside bug reporting and platform FAQs. It politely informs the customer that it cannot assist with this request and redirects them to the human support line at 1-800-555-0199."
+    }
+  ]
+}
