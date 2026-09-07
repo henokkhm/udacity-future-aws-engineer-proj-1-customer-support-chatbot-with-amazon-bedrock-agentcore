@@ -1,0 +1,10 @@
+(venv) henokkh@pop-os:~/Desktop/Udacity Future AWS Agent Engineer/project_1$ python chat.py 
+Connected to harness support_chatbot (session 4bfe27ea-8aa6-45e5-b2dc-ab60e49fac36-support-chat).
+Type a message, or 'quit' to exit.
+
+you> Can you give me fashion styling advice on which shoes look best with your blue denim jacket?
+bot> <thinking> The user's request for fashion styling advice doesn't fit into the Bug Reports or Platform Questions categories. Therefore, it falls under Other Requests. According to the instructions, I need to inform the user that I cannot assist with this request and direct them to call our human support line. </thinking>
+
+I'm sorry, but I can't assist with fashion styling advice. Please reach out to our human support team by calling our support line at 1-800-454-9383 for further assistance.
+
+you> 

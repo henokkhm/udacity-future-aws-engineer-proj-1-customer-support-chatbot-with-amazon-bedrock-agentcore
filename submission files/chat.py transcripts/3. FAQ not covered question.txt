@@ -1,0 +1,10 @@
+(venv) henokkh@pop-os:~/Desktop/Udacity Future AWS Agent Engineer/project_1$ python chat.py 
+Connected to harness support_chatbot (session 26f58fec-120b-477d-a6ac-3b547508bdef-support-chat).
+Type a message, or 'quit' to exit.
+
+you> Do you match prices if I find a lower price on another website?
+bot> <thinking> The user's message does not fit into the Bug Reports or Platform Questions categories. It is a request for a price match, which is not covered in the FAQ and does not involve a technical issue or standard store policy. Therefore, it falls into the "Other Requests" category. I need to inform the user that I cannot assist with this request and direct them to call our human support line. </thinking>
+
+I'm sorry, but I can't assist with that directly. Please reach out to our human support team by calling our support line at 1-800-454-9383 for further assistance.
+
+you> 

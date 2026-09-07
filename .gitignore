@@ -7,3 +7,7 @@ agentcore_config.json
 output_eval_dataset.jsonl
 
 .env
+
+venv
+
+Notes for reviewer.txt

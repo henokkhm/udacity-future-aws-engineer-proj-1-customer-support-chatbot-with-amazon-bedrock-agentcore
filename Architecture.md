@@ -37,7 +37,7 @@ The chatbot is instructed via its system prompt to classify incoming user intent
 
 1. **E-Commerce FAQ & Platform Support:**
    - Directly answers customer inquiries regarding orders, shipping, delivery tracking, return policies, payment issues, and account settings.
-   - Grounded strictly on verified platform knowledge loaded from [`online_shop_faq.md`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/online_shop_faq.md) to eliminate hallucinations.
+   - Grounded strictly on verified platform knowledge loaded from [`online_shop_faq.md`](./online_shop_faq.md) to eliminate hallucinations.
 2. **Multi-Turn Bug Ticket Intake:**
    - Interactively detects bug reports, technical anomalies, and website glitches.
    - Engages in a multi-turn elicitation dialogue to ensure all mandatory parameters (`description`, `stepsToReproduce`, `environment`) are captured.
@@ -56,60 +56,103 @@ The chatbot is instructed via its system prompt to classify incoming user intent
 
 ## 2. Core System Architecture & Mermaid Diagrams
 
-### 2.1 Runtime Message Flow (Sequence Diagram)
+### 2.1 Runtime Message Flow 
 
 The following sequence diagram illustrates the lifecycle of customer interactions, contrasting standard FAQ/fallback responses with multi-turn tool invocation:
 
 ```mermaid
+flowchart LR
+    Start([Customer Message]) --> Classify{Category?}
+
+    %% Branch 1: Bug Report
+    Classify -->|Technical Glitch / Crash| Bug[1. Bug Report]
+    Bug --> CheckFields{Has Description,<br/>Steps & Environment?}
+    CheckFields -->|No| AskField[Ask for ONE missing field]
+    CheckFields -->|Yes| FileBug[Execute create_bug_report tool]
+    FileBug --> ReturnTicket([Respond with Ticket ID])
+    AskField --> EndTurn1([Wait for Customer])
+
+    %% Branch 2: Platform Question
+    Classify -->|Order, Shipping, Return, Payment| FAQ[2. Platform Question]
+    FAQ --> InFAQ{In Embedded FAQ?}
+    InFAQ -->|Yes| QuoteFAQ([Respond with FAQ Figures])
+    InFAQ -->|No| Handoff1
+
+    %% Branch 3: Other / Out of Scope
+    Classify -->|Product Advice, Human Request| Other[3. Other Request]
+    Other --> Handoff2[Redirect to Support Line]
+    Handoff1[Redirect to Support Line] --> EndHandoff([1-800-555-0199 Call Message])
+    Handoff2 --> EndHandoff
+
+    %% Formatting
+    style Classify fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+    style CheckFields fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+    style InFAQ fill:#112233,stroke:#3388ff,stroke-width:2px,color:#fff
+```
+
+#### Diagram 1: FAQ Retrieval Flow
+This flow handles standard platform questions grounded in the embedded FAQ.
+
+```mermaid
 sequenceDiagram
     autonumber
-    actor Customer as "Customer / Terminal"
-    participant ChatClient as "chat.py (Client)"
-    participant AgentCoreRT as "Bedrock AgentCore Runtime"
-    participant ManagedHarness as "AgentCore Managed Harness"
-    participant NovaPro as "Amazon Nova Pro LLM"
-    participant Gateway as "AgentCore Gateway (MCP)"
-    participant Lambda as "create_bug_report (Lambda)"
-    participant DynamoDB as "BugReportsTable (DynamoDB)"
+    actor Customer
+    participant AgentCore as Bedrock AgentCore
+    participant NovaPro as Amazon Nova Pro
 
-    Note over Customer, DynamoDB: Scenario A: In-Context FAQ Retrieval or Fallback Escalation
-    Customer->>ChatClient: "What is your return policy?"
-    ChatClient->>AgentCoreRT: invoke_harness(session_id, user_text, tools)
-    AgentCoreRT->>ManagedHarness: Dispatch to session context
-    ManagedHarness->>NovaPro: Evaluate prompt (system prompt + {{FAQ}} + history + input)
-    NovaPro-->>ManagedHarness: Return grounded answer text
-    ManagedHarness-->>ChatClient: EventStream [contentBlockDelta]
-    ChatClient-->>Customer: Display streaming answer ("You can return most items within 30 days...")
+    Customer->>AgentCore: Platform inquiry (e.g. shipping or return policy)
+    AgentCore->>NovaPro: Evaluate prompt with embedded FAQ
+    NovaPro-->>AgentCore: Return grounded FAQ response
+    AgentCore-->>Customer: Stream response to user
+```
 
-    Note over Customer, DynamoDB: Scenario B: Multi-Turn Bug Reporting Tool Flow
-    Customer->>ChatClient: "The checkout button is broken on Safari!"
-    ChatClient->>AgentCoreRT: invoke_harness(session_id, user_text, tools)
-    AgentCoreRT->>ManagedHarness: Evaluate conversation state
-    ManagedHarness->>NovaPro: Detect bug intent; verify missing parameters
-    NovaPro-->>ManagedHarness: Return text: "Could you share the steps to reproduce?"
-    ManagedHarness-->>ChatClient: Stream clarification request
-    ChatClient-->>Customer: "Could you share the steps to reproduce?"
 
-    Customer->>ChatClient: "Added item to cart, clicked checkout, got spinning wheel on macOS Safari."
-    ChatClient->>AgentCoreRT: invoke_harness(session_id, user_text, tools)
-    AgentCoreRT->>ManagedHarness: Harness verifies all 3 parameters present
-    ManagedHarness->>NovaPro: Generate tool call
-    NovaPro-->>ManagedHarness: ToolUse: bugreports___create_bug_report(description, steps, env)
-    
-    ManagedHarness->>ChatClient: EventStream [contentBlockStart: toolUse]
-    Note over ChatClient: Client logs [tool call] event
+#### Diagram 2: Multi-turn Bug Ticket Intake Flow
 
-    ManagedHarness->>Gateway: POST /mcp/callTool (AWS_IAM authenticated)
-    Gateway->>Lambda: Invoke lambda_handler(event={description, stepsToReproduce, environment})
-    Lambda->>DynamoDB: PutItem({ticketId, description, steps, env, status: "OPEN", createdAt})
-    DynamoDB-->>Lambda: PutItem Success (HTTP 200)
-    Lambda-->>Gateway: Return {"ticketId": "uuid-v4", "status": "OPEN"}
-    Gateway-->>ManagedHarness: MCP ToolResult
-    
-    ManagedHarness->>NovaPro: Feed tool result back to model context
-    NovaPro-->>ManagedHarness: Assistant completion ("Bug ticket #uuid-v4 has been submitted...")
-    ManagedHarness-->>ChatClient: EventStream [contentBlockDelta: completion]
-    ChatClient-->>Customer: "Your bug report has been filed under ticket ID: <uuid-v4>."
+This flow handles technical bug reporting, parameter gathering across turns, and filing a ticket via tool invocation.
+
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant AgentCore as Bedrock AgentCore
+    participant NovaPro as Amazon Nova Pro
+    participant Tool as AgentCore Gateway
+    participant DB as DynamoDB
+
+    Customer->>AgentCore: Report website bug or glitch
+    AgentCore->>NovaPro: Detect bug report and check parameters
+    NovaPro-->>AgentCore: Request missing reproduction details
+    AgentCore-->>Customer: Ask for reproduction steps and environment
+    Customer->>AgentCore: Provide environment and steps
+    AgentCore->>NovaPro: Validate all required fields present
+    NovaPro-->>AgentCore: Trigger tool create_bug_report
+    AgentCore->>Tool: Call MCP tool with bug details
+    Tool->>DB: PutItem to store bug ticket
+    DB-->>Tool: Ticket created
+    Tool-->>AgentCore: Return ticket ID
+    AgentCore->>NovaPro: Generate confirmation message
+    NovaPro-->>AgentCore: Return final response
+    AgentCore-->>Customer: Confirm ticket ID to user
+```
+
+
+#### Diagram 3: Other Requests / Human Support Fallback Flow
+
+This flow handles queries outside FAQ/bugs or requests not present in the FAQ by politely redirecting to human support.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Customer
+    participant AgentCore as Bedrock AgentCore
+    participant NovaPro as Amazon Nova Pro
+
+    Customer->>AgentCore: Unrecognized request / Ask for human agent / Out-of-FAQ topic
+    AgentCore->>NovaPro: Evaluate request against FAQ and Bug categories
+    NovaPro-->>AgentCore: Determine request is unhandled / requires human handoff
+    AgentCore-->>Customer: Provide human support hotline (1-800-555-0199) redirect
 ```
 
 ### 2.2 File and Module Relationship (Flowchart)
@@ -202,7 +245,7 @@ flowchart TD
 
 ### 3.1 Bedrock AgentCore Managed Harness Initialization (`create_harness.py`)
 
-The file [`create_harness.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/create_harness.py) provisions and synchronizes the server-side managed harness that orchestrates conversation state and tool dispatching.
+The file [`create_harness.py`](./create_harness.py) provisions and synchronizes the server-side managed harness that orchestrates conversation state and tool dispatching.
 
 #### 1. Explicit Model Pinning & Greedy Decoding
 AgentCore harnesses require explicit model specification to avoid non-deterministic behavior or dependencies on unconfigured marketplace models:
@@ -237,7 +280,7 @@ def load_prompt(prompt_path, faq_path):
     return prompt
 ```
 
-The placeholder `{{FAQ}}` in [`system_prompt.txt`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/system_prompt.txt) is substituted with the entire contents of [`online_shop_faq.md`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/online_shop_faq.md), creating a unified context window.
+The placeholder `{{FAQ}}` in [`system_prompt.txt`](./system_prompt.txt) is substituted with the entire contents of [`online_shop_faq.md`](./online_shop_faq.md), creating a unified context window.
 
 #### 3. Idempotent Create / Update Lifecycle Management
 To enable rapid developer iteration, `create_harness.py` handles existing harnesses gracefully:
@@ -267,7 +310,7 @@ if existing:
 Tools are integrated via an **AgentCore Gateway** conforming to Anthropic's **Model Context Protocol (MCP)** specification.
 
 #### 1. Tool Schema Registration (`setup_gateway.py`)
-In [`setup_gateway.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/setup_gateway.py), the tool contract is exposed through standard JSON Schema:
+In [`setup_gateway.py`](./setup_gateway.py), the tool contract is exposed through standard JSON Schema:
 
 ```python
 TOOL_SCHEMA = {
@@ -317,7 +360,7 @@ The resulting tool name presented to Nova Pro is:
 $$\text{Tool Name} = \text{targetName} \mathbin{\Vert} \texttt{"\_\_\_"} \mathbin{\Vert} \text{toolName} \longrightarrow \texttt{"bugreports\_\_\_create\_bug\_report"}$$
 
 #### 3. Lambda Invocation & Strict Validation (`create_bug_report.py`)
-The tool execution logic resides in [`create_bug_report.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/create_bug_report.py):
+The tool execution logic resides in [`create_bug_report.py`](./create_bug_report.py):
 
 ```python
 table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
@@ -383,7 +426,7 @@ Knowledge retrieval in this architecture uses **in-context dynamic grounding**:
 ```
 
 1. **Why In-Context over External RAG?**
-   - For focused enterprise catalogs and policy handbooks (such as [`online_shop_faq.md`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/online_shop_faq.md) with 32 structured Q&A pairs covering Orders, Shipping, Returns, Payments, and Privacy), embedding the full FAQ in the system prompt provides lower latency and higher recall than vector chunking and embeddings.
+   - For focused enterprise catalogs and policy handbooks (such as [`online_shop_faq.md`](./online_shop_faq.md) with 32 structured Q&A pairs covering Orders, Shipping, Returns, Payments, and Privacy), embedding the full FAQ in the system prompt provides lower latency and higher recall than vector chunking and embeddings.
    - It eliminates embedding drift, chunk boundary truncation, and OpenSearch / Bedrock Knowledge Base infrastructure overhead.
 2. **Grounding Directives:**
    - The model is instructed to answer platform questions exclusively from the injected text.
@@ -394,7 +437,7 @@ Knowledge retrieval in this architecture uses **in-context dynamic grounding**:
 ### 3.4 Conversational State Management & Fallback Routing
 
 #### 1. Multi-Turn Session Persistence (`chat.py`)
-In [`chat.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/chat.py), conversation continuity is established via `runtimeSessionId`:
+In [`chat.py`](./chat.py), conversation continuity is established via `runtimeSessionId`:
 
 ```python
 # Session ids must be at least 33 characters (e.g., UUID + suffix)
@@ -416,7 +459,7 @@ response = rt.invoke_harness(
 Because the harness is stateful on AWS Bedrock's side, developers do not need to manage local Redis instances or database backends to persist past dialogue turns. When a user states *"The cart button crashed"*, the harness maintains context across subsequent turns as it gathers steps to reproduce and environment information.
 
 #### 2. Human Fallback Routing Logic
-The decision boundary for escalating to a human support agent is governed by instructions in [`system_prompt.txt`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/system_prompt.txt):
+The decision boundary for escalating to a human support agent is governed by instructions in [`system_prompt.txt`](./system_prompt.txt):
 - **Escalation Triggers:**
   - Requests requiring account mutations or direct database edits (such as account deletion requests per FAQ item 28, or modifying an already-packed order per FAQ item 3).
   - Out-of-scope inquiries not answered by the FAQ.
@@ -431,9 +474,9 @@ The decision boundary for escalating to a human support agent is governed by ins
 
 ### 3.5 Automated Evaluation Pipeline (`generate-eval-dataset.py`)
 
-The project includes an automated evaluation harness in [`generate-eval-dataset.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/generate-eval-dataset.py) compatible with **Amazon Bedrock Evaluations (LLM-as-a-judge / Bring-Your-Own-Inference)**:
+The project includes an automated evaluation harness in [`generate-eval-dataset.py`](./generate-eval-dataset.py) compatible with **Amazon Bedrock Evaluations (LLM-as-a-judge / Bring-Your-Own-Inference)**:
 
-1. Loads test assertions from [`harness-tests-template.json`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/harness-tests-template.json).
+1. Loads test assertions from [`harness-tests-template.json`](./harness-tests-template.json).
 2. Spawns isolated execution sessions per test case using dynamic runtime IDs (`f"{uuid.uuid4()}-evalcase"`) to prevent inter-test contamination.
 3. Formats evaluation results into the standard Bedrock Evaluations JSONL schema:
    ```json
@@ -448,7 +491,7 @@ The project includes an automated evaluation harness in [`generate-eval-dataset.
      ]
    }
    ```
-4. Stores datasets in the S3 evaluation bucket provisioned by [`cloudformation-testing.yaml`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/cloudformation-testing.yaml) for automated quality scoring.
+4. Stores datasets in the S3 evaluation bucket provisioned by [`cloudformation-testing.yaml`](./cloudformation-testing.yaml) for automated quality scoring.
 
 ---
 
@@ -528,7 +571,7 @@ This section outlines how developers can extend the starter system with new tool
 To introduce a new tool (such as order lookup by ID), follow these steps:
 
 #### Step 1: Add or Extend the Lambda Handler
-Add a handler function or extend [`create_bug_report.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/create_bug_report.py) to process the new tool:
+Add a handler function or extend [`create_bug_report.py`](./create_bug_report.py) to process the new tool:
 
 ```python
 def handle_lookup_order(event):
@@ -538,7 +581,7 @@ def handle_lookup_order(event):
 ```
 
 #### Step 2: Define the JSON Schema Contract
-In [`setup_gateway.py`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/setup_gateway.py), define the schema following the Model Context Protocol:
+In [`setup_gateway.py`](./setup_gateway.py), define the schema following the Model Context Protocol:
 
 ```python
 ORDER_TOOL_SCHEMA = {
@@ -558,7 +601,7 @@ ORDER_TOOL_SCHEMA = {
 Add the new schema to `inlinePayload` in `create_gateway_target` or attach a second target under a distinct alphanumeric target name (e.g., `orders___lookup_order_status`).
 
 #### Step 4: Update System Prompt Instructions
-Update [`system_prompt.txt`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/system_prompt.txt) to teach the model when to call the tool:
+Update [`system_prompt.txt`](./system_prompt.txt) to teach the model when to call the tool:
 ```text
 When the customer asks about order status and provides an order number,
 call the orders___lookup_order_status tool before answering.
@@ -577,4 +620,4 @@ Developers can extend the routing and triage behavior through several patterns:
 2. **Integration with External Ticketing / CRM Platforms:**
    - Modify the Lambda handler to forward bug reports or escalation requests to Jira Service Desk, Zendesk, or Salesforce Service Cloud via REST APIs.
 3. **AgentCore Memory Integration:**
-   - Leverage Bedrock AgentCore's native `bedrock-agentcore:RetrieveMemoryRecords` and `CreateEvent` capabilities (already pre-authorized in [`cloudformation-tool.yaml`](file:///home/henokkh/Desktop/Udacity%20Future%20AWS%20Agent%20Engineer/project_1/cloudformation-tool.yaml)) to persist user preferences across sessions.
+   - Leverage Bedrock AgentCore's native `bedrock-agentcore:RetrieveMemoryRecords` and `CreateEvent` capabilities (already pre-authorized in [`cloudformation-tool.yaml`](./cloudformation-tool.yaml)) to persist user preferences across sessions.

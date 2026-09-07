@@ -6,10 +6,14 @@ An agentic customer support chatbot built with the **Amazon Bedrock AgentCore** 
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Chatbot Behavior & Routing](#chatbot-behavior--routing)
-- [Technology Stack](#technology-stack)
-- [License and Copyright](#license-and-copyright)
+- [Customer Support Chatbot with Amazon Bedrock AgentCore](#customer-support-chatbot-with-amazon-bedrock-agentcore)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [Chatbot Behavior \& Routing](#chatbot-behavior--routing)
+  - [Technology Stack](#technology-stack)
+  - [Deployment](#deployment)
+  - [License and Copyright](#license-and-copyright)
+    - [Usage Restrictions](#usage-restrictions)
 
 ---
 
@@ -47,6 +51,151 @@ For complete deep-dive architectural diagrams and message flow sequences, refer 
 - **[AWS Lambda](https://aws.amazon.com/lambda/):** Serverless compute runtime executing the `create_bug_report` tool.
 - **[Amazon DynamoDB](https://aws.amazon.com/dynamodb/):** NoSQL document database storing ticket records.
 - **Amazon Nova Pro (`us.amazon.nova-pro-v1:0`):** Pinned foundation model using greedy decoding (`temperature=0.0`, `topK=1`).
+
+---
+
+## Deployment
+
+Follow these steps to deploy the application and its underlying infrastructure to AWS:
+
+**1: Deploy the tool stack** 
+
+Deploy the CloudFormation template ([`cloudformation-tool.yaml`](./cloudformation-tool.yaml)) containing the DynamoDB bug reports table, the `create_bug_report` Lambda function, and the required IAM execution and gateway roles:
+
+```bash
+aws cloudformation deploy \
+  --template-file cloudformation-tool.yaml \
+  --stack-name bug-report-tool-stack \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --region us-east-1
+```
+
+**2: Create the gateway**
+
+Run this once immediately after deploying the tool stack. [`setup_gateway.py`](./setup_gateway.py) reads the CloudFormation stack outputs, provisions an AgentCore Gateway (MCP protocol, `AWS_IAM` authentication), registers the Lambda function as the `create_bug_report` tool target, and saves all configuration ARNs to `agentcore_config.json`:
+
+```bash
+python setup_gateway.py
+```
+
+**3: Edit the system prompt**
+
+Edit the  [`system_prompt.txt`](./system_prompt.txt) file to update the system prompt. **Note:** After every edit, you have to re-run  the following command to udate the deployed system prompt.
+
+```bash
+python create_harness.py
+```
+
+**4. Test the chat**
+
+To chat with the agent in the CLI, run: 
+
+```bash
+python chat.py
+```
+
+**5. Automated Testing**
+
+First add test cases to [`harness-test.json`](./harness-test.json)
+
+
+Then generate the dataset: 
+
+```bash
+python generate-eval-dataset.py --tests-json harness-tests.json
+head -1 output_eval_dataset.jsonl
+```
+
+Deploy the testing stack:
+
+```bash
+aws cloudformation deploy \
+--template-file cloudformation-testing.yaml \
+--stack-name bug-report-testing-stack \
+--capabilities CAPABILITY_NAMED_IAM \
+--region us-east-1
+```
+
+To see the stack outputs:
+
+```bash
+aws cloudformation describe-stacks --stack-name bug-report-testing-stack \
+--query 'Stacks[0].Outputs' --output table --region us-east-1
+```
+
+**Note:** The above stack outputs are requred for running the next commands.
+
+To run the evaluation:
+
+```bash
+aws s3 cp output_eval_dataset.jsonl s3://<BUCKET>/output_eval_dataset.jsonl --region us-east-1
+```
+
+Write the configs to files — replace <BUCKET> with the output of above stack:
+```bash
+python -c "
+import json
+json.dump({'automated':{'datasetMetricConfigs':[{'taskType':'General','dataset':
+  {'name':'support-chatbot-eval-dataset','datasetLocation':
+  {'s3Uri':'s3://<BUCKET>/output_eval_dataset.jsonl'}},
+  'metricNames':['Builtin.Correctness']}],
+  'evaluatorModelConfig':{'bedrockEvaluatorModels':
+  [{'modelIdentifier':'amazon.nova-pro-v1:0'}]}}},
+  open('eval-config.json','w'))
+json.dump({'models':[{'precomputedInferenceSource':
+  {'inferenceSourceIdentifier':'my-support-chatbot'}}]},
+  open('inference-config.json','w'))
+json.dump({'s3Uri':'s3://<BUCKET>/results/'}, open('output-config.json','w'))
+"
+```
+
+Run the evaluation job: 
+
+```bash
+aws bedrock create-evaluation-job \
+--job-name support-chatbot-eval-run-1 \
+--role-arn <ROLE_ARN> \
+--evaluation-config file://eval-config.json \
+--inference-config file://inference-config.json \
+--output-data-config file://output-config.json \
+--region us-east-1
+```
+
+Note: For subsequent evaluation jobs, replace run-1 with the next number like run-2, run-3, etc
+
+To check the status of all evaluations: 
+
+```bash
+aws bedrock list-evaluation-jobs --region us-east-1 \
+--query 'jobSummaries[].[jobName,status]' --output table
+```
+
+Once the status of your latest evaluation is "Completed", you can see the results in the AWS Console -> Bedrock -> Evaluations -> <Your Evaluation>
+
+**6. Clean up**
+
+After completing the project, delete all resources not to incur additional costs. Run each command one by one:
+
+```bash
+python cleanup_agentcore.py
+```
+
+```bash
+aws s3 rm s3://<BUCKET> --recursive --region us-east-1
+```
+
+```bash
+aws cloudformation delete-stack --stack-name bug-report-testing-stack --region us-east-1
+```
+
+```bash
+aws cloudformation delete-stack --stack-name bug-report-tool-stack --region us-east-1
+```
+
+```bash
+rm -rf venv
+```
+
 
 ---
 
