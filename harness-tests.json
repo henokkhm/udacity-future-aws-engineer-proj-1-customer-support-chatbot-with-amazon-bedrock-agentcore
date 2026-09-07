@@ -2,53 +2,53 @@
   "tests": [
     {
       "id": "bug-report-complete",
-      "prompt": "Whenever I try to click the checkout button on my Windows 11 PC using Chrome, the entire website crashes and goes to a blank white screen.",
-      "expected": "The agent identifies that all three fields (description: website crashes to blank screen, stepsToReproduce: click checkout button, environment: Windows 11 PC with Chrome) are present, calls the create_bug_report tool immediately without asking follow-up questions, and returns the generated ticket ID to the user."
+      "prompt": "On Safari 17 on my iPhone, the product images never load on category pages. I open the shop, tap any category, and every image is a grey box.",
+      "expected": "The agent identifies that all three fields are clearly provided (description: product images never load / grey box; stepsToReproduce: open shop, tap any category; environment: Safari 17 on iPhone). It calls the create_bug_report tool immediately without asking follow-up questions and provides the returned ticket ID to the customer."
     },
     {
       "id": "bug-report-missing-environment",
-      "prompt": "I get an internal server error every time I attempt to update my saved shipping address under account settings.",
-      "expected": "The agent classifies this as a bug report, identifies that description and stepsToReproduce are present but environment is missing, and asks for the customer's browser, OS, or device type without calling the tool."
+      "prompt": "Your checkout page crashes every time I click the Pay button. It gives me a blank screen.",
+      "expected": "The agent classifies this checkout error as a bug report. It recognizes that description ('crashes / blank screen') and stepsToReproduce ('click the Pay button') are provided, but environment is missing. It asks for the customer's browser, OS, or device without calling the create_bug_report tool."
     },
     {
       "id": "bug-report-missing-steps",
-      "prompt": "I'm using the latest Safari browser on macOS Sonoma and the shopping cart total keeps changing to random negative numbers.",
-      "expected": "The agent classifies this as a bug report, identifies that description and environment are present but stepsToReproduce is missing, and asks the user for the specific action or sequence of steps that triggers the glitch."
+      "prompt": "I am using Google Chrome on Windows 11 and I noticed a broken link on your website.",
+      "expected": "The agent classifies this as a bug report. It recognizes that description ('broken link') and environment ('Google Chrome on Windows 11') are provided, but stepsToReproduce is missing (no specific action or page location described). It asks the customer for the specific steps or location where they encountered the broken link without calling the tool."
     },
     {
-      "id": "bug-report-ambiguous-checkout-error",
-      "prompt": "Your checkout page gives me an unknown payment execution exception whenever I click Pay.",
-      "expected": "The agent classifies this ambiguous checkout error as a bug report rather than a platform payment question, identifies missing environment details, and prompts the customer for their device, browser, or operating system."
+      "id": "bug-report-missing-steps-and-env",
+      "prompt": "The website shows an error page whenever I try to access my saved items.",
+      "expected": "The agent classifies this as a bug report. It identifies the description ('shows an error page'), but notes that stepsToReproduce and environment are both missing. Following the rule to ask for one missing field at a time, it asks the customer either for their browser/device OR the specific steps taken."
     },
     {
       "id": "faq-returns-policy",
-      "prompt": "How long do I have to send an item back if I change my mind?",
-      "expected": "The agent classifies this as a platform question and provides an answer grounded directly in the FAQ, quoting the 30 days return window from delivery as stated in FAQ #11."
+      "prompt": "How long do I have to send an item back?",
+      "expected": "The agent classifies this as a platform question. It answers using FAQ #11, explicitly quoting the exact figure that items can be returned within 30 days of delivery."
     },
     {
       "id": "faq-ambiguous-card-declined",
-      "prompt": "Why was my credit card declined when I tried to pay for my order?",
-      "expected": "The agent classifies this as a platform question rather than a bug report, referencing FAQ #20 to explain common causes such as incorrect billing details, insufficient funds, bank security checks, or international restrictions."
+      "prompt": "Why was my payment declined at checkout?",
+      "expected": "The agent classifies this ambiguous case as a platform question rather than a bug report. It answers strictly using FAQ #20, listing potential reasons such as incorrect billing details, insufficient funds, bank security checks, or international purchase limits."
     },
     {
       "id": "faq-ambiguous-late-delivery",
-      "prompt": "My package hasn't arrived yet and it's past the expected delivery date. What should I do?",
-      "expected": "The agent classifies this as a platform question rather than a bug report, answering strictly using FAQ #10 by instructing the user to check tracking updates, mailbox/neighbors, and wait 24 hours before contacting support for an investigation."
+      "prompt": "My package is late and hasn't arrived yet. What should I do?",
+      "expected": "The agent classifies this ambiguous case as a platform question rather than a bug report. It answers strictly using FAQ #10, advising the customer to check tracking, check with neighbors/mailbox, and wait 24 hours before contacting support."
     },
     {
       "id": "faq-missing-info-handoff",
-      "prompt": "Do you offer a military or veteran discount program?",
-      "expected": "The agent checks the FAQ, recognizes that military/veteran discounts are not mentioned in the FAQ, and politely redirects the customer to the human support line at 1-800-555-0199 without making up a policy or calling any tools."
+      "prompt": "Do you offer a student discount?",
+      "expected": "The agent checks the FAQ, recognizes that student discounts are not covered in the FAQ, explicitly states that it cannot answer from the FAQ, and politely redirects the customer to the human support line at 1-800-555-0199."
     },
     {
-      "id": "other-request-human-handoff",
-      "prompt": "Can you help me choose between two different jackets based on which one is warmer for winter?",
-      "expected": "The agent classifies this as an 'Other Request' (product advice), politely informs the customer that it cannot handle direct product recommendations, and hands off to the human support line at 1-800-555-0199 without executing any tools."
+      "id": "other-request-human-explicit",
+      "prompt": "I'd like to speak to a real person.",
+      "expected": "The agent classifies this as an 'Other Request' because the user is directly requesting a human representative rather than reporting a bug or asking a platform FAQ question. It politely redirects the customer to the human support line at 1-800-555-0199 without executing any tools."
     },
     {
-      "id": "other-request-explicit-human-agent",
-      "prompt": "I would like to speak directly to a real human customer support agent right now.",
-      "expected": "The agent classifies this as an 'Other Request' seeking human intervention, politely provides the phone support number (1-800-555-0199), and ends the turn with a message without invoking any tools."
+      "id": "other-request-product-recommendation",
+      "prompt": "Can you recommend which laptop case in your store is best for traveling on airplanes?",
+      "expected": "The agent classifies this as an 'Other Request' (product recommendation/advice) since it falls outside bug reporting and platform FAQs. It politely informs the customer that it cannot assist with this request and redirects them to the human support line at 1-800-555-0199."
     }
   ]
 }
